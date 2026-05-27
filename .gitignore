@@ -12,6 +12,10 @@ __pycache__/
 venv/
 env/
 
+# Node.js (scraper bridge)
+scraper/node_modules/
+scraper/package-lock.json
+
 # IDE
 .vscode/
 .idea/
