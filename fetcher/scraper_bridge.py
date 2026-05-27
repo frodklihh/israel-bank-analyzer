@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -83,9 +84,10 @@ def _run_bridge(request: dict) -> dict:
         # No timeout here — login may require manual OTP entry in the browser.
     )
 
-    # Mirror bridge progress messages so the user can see them live.
+    # Mirror bridge progress messages (use binary write to avoid encoding issues on Windows).
     if proc.stderr:
-        print(proc.stderr, end="")
+        sys.stdout.buffer.write(proc.stderr.encode("utf-8"))
+        sys.stdout.buffer.flush()
 
     if not proc.stdout.strip():
         raise ScraperBridgeError(
