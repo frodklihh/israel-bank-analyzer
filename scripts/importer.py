@@ -200,6 +200,60 @@ def parse_leumi_credit_card(path: str | Path) -> list[Transaction]:
     return transactions
 
 
+def parse_isracard_xlsx(path: str | Path) -> list[Transaction]:
+    """Parse Isracard xlsx export.
+
+    The file has metadata rows at top, then one or more sections each preceded
+    by a column-header row starting with 'תאריך רכישה'.
+    The billing amount in ILS is in column 'סכום חיוב' (index 4).
+    """
+    import pandas as pd
+
+    df = pd.read_excel(path, header=None)
+    transactions: list[Transaction] = []
+    reading = False
+
+    for _, row in df.iterrows():
+        cells = [str(v).strip() for v in row.values]
+        first = cells[0]
+
+        if first == "תאריך רכישה":
+            reading = True
+            continue
+
+        if not reading:
+            continue
+
+        if not first or first == "nan":
+            reading = False
+            continue
+
+        try:
+            date = pd.to_datetime(first, format="%d.%m.%y").to_pydatetime()
+        except (ValueError, TypeError):
+            reading = False
+            continue
+
+        description = cells[1] if len(cells) > 1 and cells[1] != "nan" else ""
+        reference = cells[6] if len(cells) > 6 and cells[6] != "nan" else ""
+        amount = _parse_amount(cells[4]) if len(cells) > 4 else 0.0
+
+        debit = amount if amount > 0 else 0.0
+        credit = abs(amount) if amount < 0 else 0.0
+
+        transactions.append(Transaction(
+            date=date.replace(tzinfo=None),
+            description=description,
+            reference=reference,
+            debit=debit,
+            credit=credit,
+            balance=0.0,
+            source="isracard",
+        ))
+
+    return transactions
+
+
 def load_file(path: str | Path) -> list[Transaction]:
     """Auto-detect file format and parse accordingly."""
     import pandas as pd
@@ -207,13 +261,16 @@ def load_file(path: str | Path) -> list[Transaction]:
     path = Path(path)
 
     if path.suffix.lower() == ".xlsx":
-        df = pd.read_excel(path, header=None, nrows=5)
+        df = pd.read_excel(path, header=None, nrows=12)
         all_text = " ".join(str(v) for row in df.itertuples(index=False) for v in row)
+
+        if "תאריך רכישה" in all_text:
+            return parse_isracard_xlsx(path)
 
         bank_markers = ["יתרה", "חובה", "תנועות בחשבון", "מסגרת האשראי"]
         if any(m in all_text for m in bank_markers):
             return parse_leumi_bank_xlsx(path)
-        else:
-            return parse_leumi_credit_card(path)
+
+        return parse_leumi_credit_card(path)
 
     return parse_leumi_xls(path)

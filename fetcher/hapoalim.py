@@ -7,6 +7,7 @@ from playwright.async_api import Page
 from config.settings import BankCredentials
 from fetcher import session
 from fetcher.base import BankFetcher
+from fetcher.isracard import _ng_set_value
 
 _LOGIN_URL = "https://digital.bankhapoalim.co.il/"
 _TRANSACTIONS_URL = "https://login.bankhapoalim.co.il/ng-portals/rb/he/current-account/transactions"
@@ -37,9 +38,19 @@ class HapoalimFetcher(BankFetcher):
 
         print("[hapoalim] logging in...")
         await page.goto(_LOGIN_URL, wait_until="networkidle")
+        await page.screenshot(path="hapoalim_login_debug.png")
+        print(f"[hapoalim] landed on: {page.url}")
+        count = await page.locator("#userCode").count()
+        print(f"[hapoalim] #userCode found: {count}")
 
-        await page.locator("#userCode").fill(self._credentials.user)
-        await page.locator("#password").fill(self._credentials.password)
+        user_input = page.locator("#userCode")
+        await user_input.wait_for(state="visible")
+        await _ng_set_value(page, "#userCode", self._credentials.user)
+
+        pass_input = page.locator("#password")
+        await pass_input.wait_for(state="visible")
+        await _ng_set_value(page, "#password", self._credentials.password)
+
         await page.get_by_role("button", name="כניסה").click()
 
         await page.wait_for_url(f"**{_PROTECTED_URL}**", timeout=15_000)
@@ -53,12 +64,6 @@ class HapoalimFetcher(BankFetcher):
         dest: Path,
     ) -> list[Path]:
         await page.goto(_TRANSACTIONS_URL, wait_until="networkidle")
-
-        # Open the period dropdown and select "2 years back".
-        # Filtering to the requested year/month happens later in build_report().
-        await page.locator("#period-filter-button-0").click()
-        await page.locator("#period-filter-period-last-2-years00").click()
-        await page.wait_for_load_state("networkidle")
 
         async with page.expect_download() as dl_info:
             await page.locator("a.kite-export-button").click()

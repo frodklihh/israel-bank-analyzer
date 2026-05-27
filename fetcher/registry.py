@@ -31,14 +31,22 @@ CARD_REGISTRY: dict[str, tuple[type[BankFetcher], CredentialsFn]] = {
 
 
 def make_bank_fetcher(name: str) -> BankFetcher:
-    if name not in BANK_REGISTRY:
-        raise ValueError(f"Unknown bank: '{name}'. Available: {list(BANK_REGISTRY)}")
-    cls, creds_fn = BANK_REGISTRY[name]
-    return cls(creds_fn())
+    provider, _, profile = name.partition(":")
+    if provider not in BANK_REGISTRY:
+        raise ValueError(f"Unknown bank: '{provider}'. Available: {list(BANK_REGISTRY)}")
+    cls, creds_fn = BANK_REGISTRY[provider]
+    fetcher = cls(creds_fn(profile))
+    if profile:
+        fetcher.name = f"{fetcher.name}_{profile}"
+    return fetcher
 
 
 def make_card_fetcher(name: str) -> BankFetcher:
-    if name not in CARD_REGISTRY:
-        raise ValueError(f"Unknown card provider: '{name}'. Available: {list(CARD_REGISTRY)}")
-    cls, creds_fn = CARD_REGISTRY[name]
-    return cls(creds_fn())
+    provider, _, profile = name.partition(":")
+    if provider not in CARD_REGISTRY:
+        raise ValueError(f"Unknown card provider: '{provider}'. Available: {list(CARD_REGISTRY)}")
+    cls, creds_fn = CARD_REGISTRY[provider]
+    fetcher = cls(creds_fn(profile))
+    if profile:
+        fetcher.name = f"{fetcher.name}_{profile}"
+    return fetcher

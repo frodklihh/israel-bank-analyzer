@@ -36,32 +36,33 @@ def _optional(key: str, default: str = "") -> str:
     return os.getenv(key, default).strip()
 
 
-def leumi_credentials() -> BankCredentials:
+def _credentials(provider: str, profile: str = "") -> BankCredentials:
+    """Load credentials for a provider, optionally scoped to a named profile.
+
+    No profile:   ISRACARD_USER / ISRACARD_PASSWORD
+    Profile=elena: ISRACARD_ELENA_USER / ISRACARD_ELENA_PASSWORD
+    """
+    prefix = f"{provider.upper()}_{profile.upper()}_" if profile else f"{provider.upper()}_"
     return BankCredentials(
-        user=_require("LEUMI_USER"),
-        password=_require("LEUMI_PASSWORD"),
+        user=_require(f"{prefix}USER"),
+        password=_require(f"{prefix}PASSWORD"),
     )
 
 
-def cal_credentials() -> BankCredentials:
-    return BankCredentials(
-        user=_require("CAL_USER"),
-        password=_require("CAL_PASSWORD"),
-    )
+def leumi_credentials(profile: str = "") -> BankCredentials:
+    return _credentials("leumi", profile)
 
 
-def hapoalim_credentials() -> BankCredentials:
-    return BankCredentials(
-        user=_require("HAPOALIM_USER"),
-        password=_require("HAPOALIM_PASSWORD"),
-    )
+def cal_credentials(profile: str = "") -> BankCredentials:
+    return _credentials("cal", profile)
 
 
-def isracard_credentials() -> BankCredentials:
-    return BankCredentials(
-        user=_require("ISRACARD_USER"),
-        password=_require("ISRACARD_PASSWORD"),
-    )
+def hapoalim_credentials(profile: str = "") -> BankCredentials:
+    return _credentials("hapoalim", profile)
+
+
+def isracard_credentials(profile: str = "") -> BankCredentials:
+    return _credentials("isracard", profile)
 
 
 def email_config() -> EmailConfig:

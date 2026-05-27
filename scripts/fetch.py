@@ -49,29 +49,45 @@ async def _run(args: argparse.Namespace) -> None:
     dest = BASE_DIR / "reports" / f"{year}-{month:02d}"
     dest.mkdir(parents=True, exist_ok=True)
 
-    bank_name = args.bank
     card_names = args.cards
+    skip_bank = args.no_bank or not args.bank
 
     print(f"\nPeriod : {year}-{month:02d}")
-    print(f"Bank   : {bank_name}")
+    print(f"Bank   : {'(skipped)' if skip_bank else args.bank}")
     print(f"Cards  : {', '.join(card_names)}")
     print(f"Output : {dest}\n")
 
-    bank_fetcher = make_bank_fetcher(bank_name)
     card_fetchers = [make_card_fetcher(name) for name in card_names]
 
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(headless=args.headless)
 
-        results = await asyncio.gather(
-            _fetch_one(browser, bank_fetcher, year, month, dest),
-            *[_fetch_one(browser, cf, year, month, dest) for cf in card_fetchers],
-        )
+        if skip_bank:
+            bank_files = []
+            card_results = await asyncio.gather(
+                *[_fetch_one(browser, cf, year, month, dest) for cf in card_fetchers],
+                return_exceptions=True,
+            )
+        else:
+            bank_fetcher = make_bank_fetcher(args.bank)
+            all_results = await asyncio.gather(
+                _fetch_one(browser, bank_fetcher, year, month, dest),
+                *[_fetch_one(browser, cf, year, month, dest) for cf in card_fetchers],
+                return_exceptions=True,
+            )
+            bank_files = all_results[0] if not isinstance(all_results[0], BaseException) else []
+            if isinstance(all_results[0], BaseException):
+                print(f"[{args.bank}] error: {all_results[0]}")
+            card_results = all_results[1:]
 
         await browser.close()
 
-    bank_files = results[0]
-    card_files = [path for files in results[1:] for path in files]
+    card_files = []
+    for name, result in zip(card_names, card_results):
+        if isinstance(result, BaseException):
+            print(f"[{name}] error: {result}")
+        else:
+            card_files.extend(result)
 
     if not bank_files and not card_files:
         print("No files downloaded — nothing to analyse.")
@@ -109,16 +125,24 @@ def main() -> None:
     parser.add_argument(
         "--bank",
         default=_DEFAULT_BANK,
-        choices=bank_choices,
-        help=f"Bank provider (default: {_DEFAULT_BANK})",
+        metavar="BANK[:PROFILE]",
+        help=f"Bank provider, optionally with a named profile. Base names: {bank_choices}. Example: hapoalim:mikhail",
+    )
+    parser.add_argument(
+        "--no-bank",
+        action="store_true",
+        help="Skip bank statement fetch (cards only)",
     )
     parser.add_argument(
         "--cards",
         nargs="+",
         default=_DEFAULT_CARDS,
-        choices=card_choices,
-        metavar="CARD",
-        help=f"Card provider(s) (default: {_DEFAULT_CARDS}). Choices: {card_choices}",
+        metavar="CARD[:PROFILE]",
+        help=(
+            f"Card provider(s), optionally with a named profile. "
+            f"Base names: {card_choices}. "
+            f"Example: isracard:michael isracard:elena"
+        ),
     )
     parser.add_argument("--email",    action="store_true", help="Send report via email")
     parser.add_argument("--headless", action="store_true", help="Run browser without a visible window")
