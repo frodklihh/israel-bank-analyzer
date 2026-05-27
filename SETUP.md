@@ -2,10 +2,55 @@
 
 This project uses `israeli-bank-scrapers` (npm) to scrape Israeli bank and credit card statements, wrapped via a Node.js bridge and called from Python.
 
-## Prerequisites
+## Quick Start with Docker (Recommended)
+
+Docker handles all dependencies (Python, Node.js, Chrome) in one clean container.
+
+### Prerequisites
+- Docker and Docker Compose installed
+
+### 1. Copy environment template
+```bash
+cp .env.example .env
+```
+Edit `.env` with your credentials (see [Environment Variables](#environment-variables) section below).
+
+### 2. Build and run
+```bash
+# Build the Docker image (first time only, ~10 min)
+docker-compose build
+
+# Run scraper for current month
+docker-compose run --rm scraper --bank hapoalim:mikhail --cards isracard:mikhail
+
+# For specific month
+docker-compose run --rm scraper --bank hapoalim:mikhail --cards isracard:mikhail --year 2026 --month 4
+
+# With email
+docker-compose run --rm scraper --bank hapoalim:mikhail --cards isracard:mikhail --email
+
+# View help
+docker-compose run --rm scraper --help
+```
+
+Reports will be saved to `./reports/` on your host machine.
+
+### Scheduled runs (Linux/Mac with cron)
+```bash
+# Add to crontab (runs on 1st of every month at 9am)
+0 9 1 * * cd /path/to/leumi-analyzer && docker-compose run --rm scraper --bank hapoalim:mikhail --cards isracard:mikhail --email
+```
+
+---
+
+## Manual Setup (Linux / WSL / macOS)
+
+If you prefer not to use Docker:
+
+### Prerequisites
 
 - **Node.js 18+** (v24.16+ tested)
-- **Python 3.10+** (3.14 tested, but see Python Setup section)
+- **Python 3.10+** (3.11+ recommended)
 - **Chromium/Chrome browser** (Puppeteer will download automatically)
 
 ## Setup Steps

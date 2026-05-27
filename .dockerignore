@@ -1,0 +1,41 @@
+# Version control
+.git
+.gitignore
+.github
+
+# Development
+.venv
+venv
+env
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated files
+*.log
+*.pid
+reports/2026-*/
+
+# Node (will reinstall in container)
+scraper/node_modules
+scraper/package-lock.json
+
+# Python packages (will reinstall in container)
+Lib/
+Scripts/
+site-packages/
+
+# Documentation
+SETUP.md
+README.md

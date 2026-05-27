@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  scraper:
+    build: .
+    container_name: leumi-analyzer
+    environment:
+      # Bank credentials (from .env file)
+      LEUMI_USER: ${LEUMI_USER}
+      LEUMI_PASSWORD: ${LEUMI_PASSWORD}
+      HAPOALIM_USER: ${HAPOALIM_USER}
+      HAPOALIM_PASSWORD: ${HAPOALIM_PASSWORD}
+      ISRACARD_USER: ${ISRACARD_USER}
+      ISRACARD_PASSWORD: ${ISRACARD_PASSWORD}
+      CAL_USER: ${CAL_USER:-}
+      CAL_PASSWORD: ${CAL_PASSWORD:-}
+
+      # Multi-user profiles
+      LEUMI_MIKHAIL_USER: ${LEUMI_MIKHAIL_USER:-}
+      LEUMI_MIKHAIL_PASSWORD: ${LEUMI_MIKHAIL_PASSWORD:-}
+      LEUMI_DANIIL_USER: ${LEUMI_DANIIL_USER:-}
+      LEUMI_DANIIL_PASSWORD: ${LEUMI_DANIIL_PASSWORD:-}
+      HAPOALIM_MIKHAIL_USER: ${HAPOALIM_MIKHAIL_USER:-}
+      HAPOALIM_MIKHAIL_PASSWORD: ${HAPOALIM_MIKHAIL_PASSWORD:-}
+      HAPOALIM_DANIIL_USER: ${HAPOALIM_DANIIL_USER:-}
+      HAPOALIM_DANIIL_PASSWORD: ${HAPOALIM_DANIIL_PASSWORD:-}
+      ISRACARD_MIKHAIL_USER: ${ISRACARD_MIKHAIL_USER:-}
+      ISRACARD_MIKHAIL_PASSWORD: ${ISRACARD_MIKHAIL_PASSWORD:-}
+      ISRACARD_DANIIL_USER: ${ISRACARD_DANIIL_USER:-}
+      ISRACARD_DANIIL_PASSWORD: ${ISRACARD_DANIIL_PASSWORD:-}
+      CAL_MIKHAIL_USER: ${CAL_MIKHAIL_USER:-}
+      CAL_MIKHAIL_PASSWORD: ${CAL_MIKHAIL_PASSWORD:-}
+      CAL_DANIIL_USER: ${CAL_DANIIL_USER:-}
+      CAL_DANIIL_PASSWORD: ${CAL_DANIIL_PASSWORD:-}
+
+      # Email (optional)
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      EMAIL_TO: ${EMAIL_TO:-}
+
+      # Timezone
+      TZ: Asia/Jerusalem
+
+    volumes:
+      # Mount reports directory to access generated reports
+      - ./reports:/app/reports
+
+    # Don't keep container running after script finishes
+    stdin_open: false
+    tty: false
