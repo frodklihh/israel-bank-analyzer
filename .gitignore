@@ -21,6 +21,7 @@ env/
 
 # Generated reports / outputs
 output/
+reports/2026-*/
 report.html
 bank_statement.xls
 cards_elena.xlsx
