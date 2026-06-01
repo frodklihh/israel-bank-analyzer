@@ -83,6 +83,9 @@ async function main() {
     combineInstallments,
     showBrowser,
   };
+  if (process.env.PUPPETEER_NO_SANDBOX === '1') {
+    options.args = ['--no-sandbox', '--disable-setuid-sandbox'];
+  }
   if (typeof timeout === 'number') {
     options.timeout = timeout;
   }

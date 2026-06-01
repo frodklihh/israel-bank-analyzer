@@ -39,8 +39,9 @@ services:
       EMAIL_FROM: ${EMAIL_FROM:-}
       EMAIL_TO: ${EMAIL_TO:-}
 
-      # Timezone
+      # Runtime
       TZ: Asia/Jerusalem
+      PUPPETEER_NO_SANDBOX: "1"
 
     volumes:
       # Mount reports directory to access generated reports
