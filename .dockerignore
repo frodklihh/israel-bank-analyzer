@@ -29,7 +29,6 @@ reports/2026-*/
 
 # Node (will reinstall in container)
 scraper/node_modules
-scraper/package-lock.json
 
 # Python packages (will reinstall in container)
 Lib/

@@ -4,7 +4,7 @@ FROM node:24-alpine AS scraper-build
 
 WORKDIR /app/scraper
 COPY scraper/package*.json ./
-RUN npm ci --only=production && \
+RUN npm ci --omit=dev && \
     npx puppeteer@latest browsers install chrome@126
 
 # Stage 2: Python + everything
@@ -37,8 +37,9 @@ COPY --from=scraper-build /root/.cache/puppeteer /root/.cache/puppeteer
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Set up timezone (Israel)
+# Set up timezone and Python path
 ENV TZ=Asia/Jerusalem
+ENV PYTHONPATH=/app
 
 # Default to showing help
 ENTRYPOINT ["python", "scripts/fetch.py"]
