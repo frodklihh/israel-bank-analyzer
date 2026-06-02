@@ -24,6 +24,16 @@ class Transaction:
     source: str = ""
     category: str = ""
 
+    def __post_init__(self) -> None:
+        # Scrub owner name + national-ID from free-text fields at the single
+        # point every parser (and the scraper bridge) funnels through, so PII
+        # never reaches categorization, the HTML report, or email.
+        # Imported lazily to avoid a circular import via leumi_analyzer/__init__.
+        from leumi_analyzer.privacy import redact_pii
+
+        self.description = redact_pii(self.description)
+        self.reference = redact_pii(self.reference)
+
 
 def _parse_amount(s) -> float:
     """Convert '₪5,403.92' or NaN to a float."""
