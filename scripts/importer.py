@@ -97,6 +97,9 @@ def parse_leumi_bank_xlsx(path: str | Path) -> list[Transaction]:
 
     Dynamically locates the header row since Leumi exports include
     metadata rows at the top of the file.
+
+    Expected columns (row 5 in a typical export):
+        תאריך | הפעולה | פרטים | אסמכתא | חובה | זכות | יתרה בש''ח | תאריך ערך | לטובת | עבור
     """
     import pandas as pd
 
@@ -112,12 +115,13 @@ def parse_leumi_bank_xlsx(path: str | Path) -> list[Transaction]:
     df = pd.read_excel(path, header=header_row_idx)
     df.columns = [str(c).strip() for c in df.columns]
 
-    date_col = next((c for c in df.columns if "תאריך" in c), df.columns[0])
-    desc_col = next((c for c in df.columns if "תיאור" in c), df.columns[2] if len(df.columns) > 2 else df.columns[1])
+    date_col = next((c for c in df.columns if c == "תאריך"), next((c for c in df.columns if "תאריך" in c), df.columns[0]))
+    desc_col = next((c for c in df.columns if c in ("הפעולה", "תיאור")), df.columns[1] if len(df.columns) > 1 else df.columns[0])
     ref_col = next((c for c in df.columns if "אסמכתא" in c), None)
     debit_col = next((c for c in df.columns if "חובה" in c), None)
     credit_col = next((c for c in df.columns if "זכות" in c), None)
     balance_col = next((c for c in df.columns if "יתרה" in c), None)
+    purpose_col = next((c for c in df.columns if c == "עבור"), None)
 
     transactions = []
     for _, row in df.iterrows():
@@ -131,9 +135,16 @@ def parse_leumi_bank_xlsx(path: str | Path) -> list[Transaction]:
             else:
                 date = pd.to_datetime(date_raw, dayfirst=True).to_pydatetime()
 
-            description = str(row[desc_col]).strip() if desc_col in row and not pd.isna(row[desc_col]) else ""
+            description = str(row[desc_col]).strip() if not pd.isna(row[desc_col]) else ""
             if not description or description.lower() == "nan":
                 continue
+
+            if purpose_col and purpose_col in row.index:
+                purpose = row[purpose_col]
+                if purpose is not None and not pd.isna(purpose):
+                    purpose_str = str(purpose).strip()
+                    if purpose_str and purpose_str.lower() != "nan":
+                        description = f"{description} {purpose_str}"
 
             reference = str(row[ref_col]).strip() if ref_col and ref_col in row and not pd.isna(row[ref_col]) else ""
             debit = _parse_amount(row[debit_col]) if debit_col and debit_col in row else 0.0
@@ -254,6 +265,70 @@ def parse_isracard_xlsx(path: str | Path) -> list[Transaction]:
     return transactions
 
 
+def parse_hapoalim_xlsx(path: str | Path) -> list[Transaction]:
+    """Parse Bank Hapoalim Excel export.
+
+    Hapoalim exports have Hebrew headers like:
+        תאריך | תאור | אסמכתא | חובה | זכות | יתרה
+    The header row may not be the first row.
+    """
+    import pandas as pd
+
+    df_raw = pd.read_excel(path, header=None)
+    header_row_idx = 0
+
+    for idx, row in df_raw.iterrows():
+        row_str = " ".join(str(v) for v in row.values)
+        if "תאריך" in row_str and ("תאור" in row_str or "תיאור" in row_str):
+            header_row_idx = idx
+            break
+
+    df = pd.read_excel(path, header=header_row_idx)
+    df.columns = [str(c).strip() for c in df.columns]
+
+    date_col = next((c for c in df.columns if "תאריך" in c), df.columns[0])
+    desc_col = next((c for c in df.columns if "תאור" in c or "תיאור" in c), df.columns[1])
+    ref_col = next((c for c in df.columns if "אסמכתא" in c), None)
+    debit_col = next((c for c in df.columns if "חובה" in c), None)
+    credit_col = next((c for c in df.columns if "זכות" in c), None)
+    balance_col = next((c for c in df.columns if "יתרה" in c), None)
+
+    transactions = []
+    for _, row in df.iterrows():
+        try:
+            date_raw = row[date_col]
+            if pd.isna(date_raw) or str(date_raw).strip() == "" or "תאריך" in str(date_raw):
+                continue
+
+            if isinstance(date_raw, datetime):
+                date = date_raw
+            else:
+                date = pd.to_datetime(date_raw, dayfirst=True).to_pydatetime()
+
+            description = str(row[desc_col]).strip() if not pd.isna(row[desc_col]) else ""
+            if not description or description.lower() == "nan":
+                continue
+
+            reference = str(row[ref_col]).strip() if ref_col and not pd.isna(row.get(ref_col)) else ""
+            debit = _parse_amount(row[debit_col]) if debit_col and debit_col in row else 0.0
+            credit = _parse_amount(row[credit_col]) if credit_col and credit_col in row else 0.0
+            balance = _parse_amount(row[balance_col]) if balance_col and balance_col in row else 0.0
+
+            transactions.append(Transaction(
+                date=date.replace(tzinfo=None),
+                description=description,
+                reference=reference,
+                debit=debit,
+                credit=credit,
+                balance=balance,
+                source="bank",
+            ))
+        except Exception:
+            continue
+
+    return transactions
+
+
 def load_file(path: str | Path) -> list[Transaction]:
     """Auto-detect file format and parse accordingly."""
     import pandas as pd
@@ -267,8 +342,16 @@ def load_file(path: str | Path) -> list[Transaction]:
         if "תאריך רכישה" in all_text:
             return parse_isracard_xlsx(path)
 
+        # Hapoalim markers: "תאור" (not "תיאור") or "פועלים" in metadata
+        hapoalim_markers = ["הפועלים", "פועלים", "Hapoalim"]
+        if any(m in all_text for m in hapoalim_markers):
+            return parse_hapoalim_xlsx(path)
+
         bank_markers = ["יתרה", "חובה", "תנועות בחשבון", "מסגרת האשראי"]
         if any(m in all_text for m in bank_markers):
+            # Could be Leumi or generic bank format — try Hapoalim if "תאור"
+            if "תאור" in all_text and "תיאור" not in all_text:
+                return parse_hapoalim_xlsx(path)
             return parse_leumi_bank_xlsx(path)
 
         return parse_leumi_credit_card(path)

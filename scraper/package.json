@@ -9,6 +9,8 @@
     "bridge": "node bridge.js"
   },
   "dependencies": {
-    "israeli-bank-scrapers": "^5.0.0"
+    "israeli-bank-scrapers": "^6.7.5",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }

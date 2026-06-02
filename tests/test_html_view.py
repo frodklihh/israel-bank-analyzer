@@ -32,15 +32,17 @@ class TestRenderHtml:
         sample_transactions = categorize(sample_transactions)
         report = build_report(sample_transactions, [], year=2026, month=5)
         html = render_html(report)
-        # The "By Month" tab button should NOT appear when filtering single month
-        assert "📅 By Month" not in html
+        # The "By Month" tab BUTTON should NOT be rendered when filtering a single
+        # month. (Match the button markup, not the bare phrase — the latter also
+        # lives in the JS i18n dictionary and is always present.)
+        assert "📅 By Month</button>" not in html
 
     def test_by_month_tab_shown_without_month_filter(self, sample_transactions):
         sample_transactions = categorize(sample_transactions)
         report = build_report(sample_transactions, [], year=2026)
         html = render_html(report)
         # The "By Month" tab button should appear when not filtering by month
-        assert "📅 By Month" in html
+        assert "📅 By Month</button>" in html
 
     def test_real_picture_section(self, sample_transactions):
         sample_transactions = categorize(sample_transactions)

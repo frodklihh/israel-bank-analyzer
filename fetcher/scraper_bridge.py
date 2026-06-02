@@ -38,19 +38,33 @@ _BRIDGE_JS = _BRIDGE_DIR / "bridge.js"
 
 @dataclass(frozen=True)
 class ProviderSpec:
-    company_id: str                     # CompanyTypes key in JS
-    kind: str                           # "bank" or "credit_card"
-    credentials_keys: tuple[str, str]   # which JSON keys map to (user, password)
+    company_id: str   # CompanyTypes key in JS (what the Node bridge expects)
+    kind: str         # "bank" or "credit_card"
+    # Maps each credential key that israeli-bank-scrapers expects to the
+    # BankCredentials attribute it should be filled from. Different providers
+    # need different key sets (Hapoalim: userCode; Isracard: id + card6Digits).
+    credentials_map: tuple[tuple[str, str], ...]
+
+    @property
+    def credentials_keys(self) -> tuple[str, ...]:
+        """The scraper-side credential field names, in order."""
+        return tuple(scraper_key for scraper_key, _ in self.credentials_map)
+
+    def build_credentials(self, credentials: "BankCredentials") -> dict[str, str]:
+        """Build the provider-specific credentials dict for the bridge."""
+        return {scraper_key: getattr(credentials, attr) for scraper_key, attr in self.credentials_map}
 
 
+# Provider keys here are the *user-facing* names (matching the .env prefixes,
+# e.g. CAL_*). The CompanyTypes key the Node scraper expects lives in company_id
+# — for Cal these differ ("cal" → company_id "visaCal").
 PROVIDERS: dict[str, ProviderSpec] = {
-    "leumi":    ProviderSpec("leumi",    "bank",        ("username", "password")),
-    "hapoalim": ProviderSpec("hapoalim", "bank",        ("userCode", "password")),
-    "isracard": ProviderSpec("isracard", "credit_card", ("id",       "password")),
-    # Cal uses id + last 6 card digits + password. We currently store only
-    # user+password in BankCredentials; Cal will need a separate handling
-    # path or an extension to BankCredentials before it works.
-    "visaCal":  ProviderSpec("visaCal",  "credit_card", ("username", "password")),
+    "leumi":    ProviderSpec("leumi",    "bank",        (("username", "user"), ("password", "password"))),
+    "hapoalim": ProviderSpec("hapoalim", "bank",        (("userCode", "user"), ("password", "password"))),
+    # Isracard needs three fields: id + account password + last 6 card digits.
+    "isracard": ProviderSpec("isracard", "credit_card", (("id", "user"), ("password", "password"), ("card6Digits", "card6"))),
+    # Cal (israeli-bank-scrapers CompanyTypes.visaCal) uses just username + password.
+    "cal":      ProviderSpec("visaCal",  "credit_card", (("username", "user"), ("password", "password"))),
 }
 
 
@@ -185,11 +199,10 @@ def fetch(
         )
 
     spec = PROVIDERS[provider]
-    user_key, pass_key = spec.credentials_keys
 
     request = {
         "provider":            spec.company_id,
-        "credentials":         {user_key: credentials.user, pass_key: credentials.password},
+        "credentials":         spec.build_credentials(credentials),
         "startDate":           start_date.strftime("%Y-%m-%d"),
         "showBrowser":         show_browser,
         "combineInstallments": combine_installments,

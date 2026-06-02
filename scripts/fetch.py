@@ -40,7 +40,7 @@ _CREDENTIAL_LOADERS = {
     "leumi":    leumi_credentials,
     "hapoalim": hapoalim_credentials,
     "isracard": isracard_credentials,
-    "visaCal":  cal_credentials,
+    "cal":      cal_credentials,
 }
 
 

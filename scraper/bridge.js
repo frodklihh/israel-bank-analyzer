@@ -88,6 +88,10 @@ async function main() {
   }
 
   logStatus(`provider=${provider} startDate=${startDate} showBrowser=${showBrowser}`);
+  // Debug: log credential keys and value lengths (never the actual values)
+  const credKeys = Object.keys(credentials);
+  const credLengths = credKeys.map(k => `${k}=${credentials[k]?.length ?? 'null'} chars`);
+  logStatus(`credentials: { ${credLengths.join(', ')} }`);
 
   const scraper = createScraper(options);
 

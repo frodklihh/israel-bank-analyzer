@@ -32,21 +32,22 @@ pip install -r requirements.txt
 Create `.env` in the project root with your credentials:
 
 ```bash
-# Bank Leumi
+# Bank Leumi          (USER = site username, PASSWORD = site password)
 LEUMI_USER=<your_username>
 LEUMI_PASSWORD=<your_password>
 
-# Bank Hapoalim
-HAPOALIM_USER=<your_username>
+# Bank Hapoalim       (USER = userCode, PASSWORD = site password)
+HAPOALIM_USER=<your_user_code>
 HAPOALIM_PASSWORD=<your_password>
 
-# Isracard
-ISRACARD_USER=<your_id>           # Israeli ID
-ISRACARD_PASSWORD=<last_4_digits>  # Last 4 digits of any card
+# Isracard            (needs THREE fields)
+ISRACARD_USER=<your_id>          # Israeli ID (תעודת זהות)
+ISRACARD_PASSWORD=<site_password> # Isracard website password
+ISRACARD_CARD6=<last_6_digits>    # Last 6 digits of the card
 
-# Visa Cal (if needed)
-# CAL_USER=<id>
-# CAL_PASSWORD=<last_4_digits>
+# Visa Cal (if needed) (USER = site username, PASSWORD = site password)
+# CAL_USER=<username>
+# CAL_PASSWORD=<password>
 
 # Email (optional)
 SMTP_USER=<email@gmail.com>
@@ -65,6 +66,7 @@ HAPOALIM_DANIIL_PASSWORD=daniil_pass
 
 ISRACARD_MIKHAIL_USER=...
 ISRACARD_MIKHAIL_PASSWORD=...
+ISRACARD_MIKHAIL_CARD6=...
 ```
 
 Then use: `python scripts/fetch.py --bank hapoalim:mikhail --cards isracard:mikhail`
@@ -153,27 +155,24 @@ categorize → build_report → HTML + email
 
 ## Supported Providers
 
-| Provider | Kind | Login |  OTP | Notes |
-|----------|------|-------|------|-------|
-| **Leumi** | Bank | User+Pass | SMS | SMS required |
-| **Hapoalim** | Bank | User+Pass | OTP | OTP via SMS/phone |
-| **Isracard** | Cards | ID + 4 digits | SMS | SMS required |
-| **Cal (Visa Cal)** | Cards | ID + 4 digits | OTP | OTP via SMS |
+| Provider name (CLI) | Kind | Credential fields | Notes |
+|---------------------|------|-------------------|-------|
+| **leumi** | Bank | `username` + `password` | |
+| **hapoalim** | Bank | `userCode` + `password` | env `USER` holds the userCode |
+| **isracard** | Cards | `id` + `password` + `card6Digits` | env `USER`=ID, `CARD6`=last 6 digits |
+| **cal** | Cards | `username` + `password` | maps to scraper company `visaCal` |
 
-All providers require manual OTP entry in the browser window (cannot be automated for security reasons).
+Login is performed automatically by `israeli-bank-scrapers` using the credentials
+above. If a provider triggers an SMS/OTP challenge, complete it in the browser
+window (run without `--headless` so the window is visible).
 
-## Old Playwright Fetchers
+## Old Playwright Fetchers (removed)
 
-The old custom Playwright fetchers (`fetcher/hapoalim.py`, `fetcher/isracard.py`, etc.) are no longer used. They can be deleted once this setup is confirmed working.
-
-Files that can be deleted:
-- `fetcher/hapoalim.py`
-- `fetcher/isracard.py`
-- `fetcher/leumi.py`
-- `fetcher/cal.py`
-- `fetcher/session.py`
-- `fetcher/base.py`
-- `fetcher/registry.py` (old registry, replaced by internal `scraper_bridge.PROVIDERS`)
+The old custom Playwright fetchers have been removed in favour of the Node
+`israeli-bank-scrapers` bridge. Provider/credential wiring now lives entirely in
+`fetcher/scraper_bridge.py` (`PROVIDERS`). The `playwright` dependency has been
+dropped from `requirements.txt`. If you need the old browser-automation code,
+recover it from git history.
 
 ## Next Steps
 

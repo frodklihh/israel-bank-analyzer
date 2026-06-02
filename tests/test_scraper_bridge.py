@@ -36,12 +36,51 @@ class TestProviderRegistry:
         spec = PROVIDERS["isracard"]
         assert spec.company_id == "isracard"
         assert spec.kind == "credit_card"
-        assert spec.credentials_keys == ("id", "password")
+        # Isracard needs three fields: id + account password + last 6 card digits.
+        assert spec.credentials_keys == ("id", "password", "card6Digits")
 
-    def test_visaCal_spec(self) -> None:
-        spec = PROVIDERS["visaCal"]
+    def test_cal_spec(self) -> None:
+        # User-facing name is "cal" (matches CAL_* env vars); the scraper
+        # CompanyTypes key it maps to is "visaCal".
+        spec = PROVIDERS["cal"]
         assert spec.company_id == "visaCal"
         assert spec.kind == "credit_card"
+        assert spec.credentials_keys == ("username", "password")
+
+
+class TestBuildCredentials:
+    """Verify BankCredentials is mapped onto the right scraper-side keys."""
+
+    def test_leumi_maps_username_password(self) -> None:
+        creds = BankCredentials(user="u123", password="secret")
+        assert PROVIDERS["leumi"].build_credentials(creds) == {
+            "username": "u123",
+            "password": "secret",
+        }
+
+    def test_hapoalim_maps_usercode(self) -> None:
+        creds = BankCredentials(user="UC99", password="secret")
+        assert PROVIDERS["hapoalim"].build_credentials(creds) == {
+            "userCode": "UC99",
+            "password": "secret",
+        }
+
+    def test_isracard_sends_all_three_fields(self) -> None:
+        # Regression: password must land in `password`, NOT in `card6Digits`,
+        # and the last 6 digits must be sent as a separate field.
+        creds = BankCredentials(user="305555555", password="myPass", card6="123456")
+        assert PROVIDERS["isracard"].build_credentials(creds) == {
+            "id": "305555555",
+            "password": "myPass",
+            "card6Digits": "123456",
+        }
+
+    def test_cal_maps_username_password(self) -> None:
+        creds = BankCredentials(user="caluser", password="secret")
+        assert PROVIDERS["cal"].build_credentials(creds) == {
+            "username": "caluser",
+            "password": "secret",
+        }
 
 
 class TestTransactionConversion:

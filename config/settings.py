@@ -13,6 +13,8 @@ load_dotenv()
 class BankCredentials:
     user: str
     password: str
+    # Only Isracard/Amex need this (last 6 card digits). Empty for all others.
+    card6: str = ""
 
 
 @dataclass(frozen=True)
@@ -36,16 +38,21 @@ def _optional(key: str, default: str = "") -> str:
     return os.getenv(key, default).strip()
 
 
-def _credentials(provider: str, profile: str = "") -> BankCredentials:
+def _credentials(provider: str, profile: str = "", *, needs_card6: bool = False) -> BankCredentials:
     """Load credentials for a provider, optionally scoped to a named profile.
 
     No profile:   ISRACARD_USER / ISRACARD_PASSWORD
     Profile=elena: ISRACARD_ELENA_USER / ISRACARD_ELENA_PASSWORD
+
+    When ``needs_card6`` is set (Isracard/Amex), also require ``{PREFIX}CARD6``
+    — the last 6 digits of the card, which israeli-bank-scrapers needs in
+    addition to id + password.
     """
     prefix = f"{provider.upper()}_{profile.upper()}_" if profile else f"{provider.upper()}_"
     return BankCredentials(
         user=_require(f"{prefix}USER"),
         password=_require(f"{prefix}PASSWORD"),
+        card6=_require(f"{prefix}CARD6") if needs_card6 else "",
     )
 
 
@@ -62,7 +69,7 @@ def hapoalim_credentials(profile: str = "") -> BankCredentials:
 
 
 def isracard_credentials(profile: str = "") -> BankCredentials:
-    return _credentials("isracard", profile)
+    return _credentials("isracard", profile, needs_card6=True)
 
 
 def email_config() -> EmailConfig:

@@ -6,7 +6,7 @@ from datetime import datetime
 
 from scripts.importer import Transaction
 
-from categorizer import (
+from leumi_analyzer.categorizer import (
     normalize_description,
     canonicalize,
     _match_keywords,

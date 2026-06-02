@@ -34,6 +34,10 @@ bank_statement.xls
 cards_elena.xlsx
 cards_leonid.xlsx
 
+# Real bank/card statements (contain PII) — never commit
+reports/*.xlsx
+reports/*.xls
+
 # Secrets
 .env
 
