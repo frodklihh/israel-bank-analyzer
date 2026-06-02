@@ -11,9 +11,14 @@ __pycache__/
 .venv/
 venv/
 env/
-Lib/
-Scripts/
+/Lib/
 site-packages/
+# NOTE: do NOT ignore "Scripts/" — on case-insensitive (Windows) filesystems
+# it also matches the source "scripts/" package, silently dropping source
+# files (this had been hiding scripts/report.py). The real venv lives in
+# .venv/. The line below ignores only the venv executables that pip dropped
+# into scripts/, while keeping source *.py trackable.
+scripts/*.exe
 
 # Node.js (scraper bridge)
 scraper/node_modules/
