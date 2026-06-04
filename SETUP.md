@@ -150,7 +150,7 @@ python scripts/report.py --bank-dir exports/bank --cards-dir exports/cards
 # ONE mixed folder — each file is auto-classified as bank vs card by its format.
 # Recurses into subfolders, so a flat folder OR a bank/ + cards/ split both work
 # in a single command.
-python scripts/report.py --dir exports/daniel/
+python scripts/report.py --dir exports/me/
 
 # Period control
 python scripts/report.py --year 2026 --month 5   # one month
@@ -158,7 +158,7 @@ python scripts/report.py --year 2026             # full-year report (every month
 python scripts/report.py --all                   # every transaction, no period filter
 
 # Email the result
-python scripts/report.py --dir exports/daniel/ --email
+python scripts/report.py --dir exports/me/ --email
 ```
 
 Where to download files:
