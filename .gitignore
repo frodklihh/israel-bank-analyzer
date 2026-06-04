@@ -7,10 +7,22 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
-# Virtual env
+# Virtual env / site-packages (pip may install to project directory)
 .venv/
 venv/
 env/
+/Lib/
+site-packages/
+# NOTE: do NOT ignore "Scripts/" — on case-insensitive (Windows) filesystems
+# it also matches the source "scripts/" package, silently dropping source
+# files (this had been hiding scripts/report.py). The real venv lives in
+# .venv/. The line below ignores only the venv executables that pip dropped
+# into scripts/, while keeping source *.py trackable.
+scripts/*.exe
+
+# Node.js (scraper bridge)
+scraper/node_modules/
+scraper/package-lock.json
 
 # IDE
 .vscode/
@@ -21,10 +33,23 @@ env/
 
 # Generated reports / outputs
 output/
+reports/20*/
 report.html
 bank_statement.xls
 cards_elena.xlsx
 cards_leonid.xlsx
+
+# Real bank/card statements (contain PII) — never commit.
+# Recursive globs cover per-user subfolders too (e.g. reports/exports_michael/cards/*.xlsx).
+reports/*.xlsx
+reports/*.xls
+reports/**/*.xlsx
+reports/**/*.xls
+# Per-user export folders (raw downloaded statements)
+reports/exports_*/
+
+# Secrets
+.env
 
 # OS
 .DS_Store
