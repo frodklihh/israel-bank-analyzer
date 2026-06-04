@@ -8,6 +8,7 @@ import pytest
 
 from scripts.importer import (
     _parse_amount,
+    _merge_purpose,
     parse_leumi_xls,
     load_file,
     Transaction,
@@ -24,6 +25,26 @@ class TestParseAmount:
 
     def test_empty_string(self):
         assert _parse_amount("") == 0.0
+
+
+class TestMergePurpose:
+    """The עבור (purpose) note is appended unless it just repeats the operation."""
+
+    def test_drops_duplicate_bit_label(self):
+        # "bit העברת כסף" + "bit העברת כספים" must not stutter.
+        assert _merge_purpose("bit העברת כסף", "bit העברת כספים") == "bit העברת כסף"
+
+    def test_keeps_informative_purpose(self):
+        assert _merge_purpose("העב' לאחר-נייד", "שכירות") == "העב' לאחר-נייד שכירות"
+
+    def test_skips_purpose_already_contained(self):
+        assert _merge_purpose("העברה שכירות", "שכירות") == "העברה שכירות"
+
+    def test_empty_purpose(self):
+        assert _merge_purpose("מסטרקרד", "") == "מסטרקרד"
+
+    def test_collapses_whitespace(self):
+        assert _merge_purpose("העב'   לאחר", "  דמי   בית ") == "העב' לאחר דמי בית"
 
 
 class TestParseLeumiXls:

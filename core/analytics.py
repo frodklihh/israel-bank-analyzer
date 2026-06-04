@@ -2,6 +2,7 @@ from datetime import datetime
 from dataclasses import dataclass, field
 from scripts.importer import Transaction
 from core.period import billing_month
+from israel_bank_analyzer.categorizer import canonicalize
 
 UNKNOWN_CATEGORY = "❓ Other"
 
@@ -11,9 +12,17 @@ FEE_KEYWORDS = [
 ]
 
 CC_REFUND_KEYWORDS = [
-    "כרטיסי אשראי", "כרטיס אשראי", "ויזה",
-    "visa", "isracard", "cal", "max"
+    "כרטיסי אשראי", "כרטיס אשראי", "כ' אשראי", "ויזה",
+    "visa", "isracard", "cal", "max",
 ]
+
+
+@dataclass
+class MerchantSummary:
+    name: str                       # representative display name
+    total: float                    # total spent at this merchant
+    count: int                      # number of purchases
+    transactions: list[Transaction]
 
 
 @dataclass
@@ -21,6 +30,9 @@ class CategorySummary:
     name: str
     total: float
     transactions: list[Transaction]
+    # Per-merchant aggregation within this category (purchases at the same
+    # place rolled into one line). Sorted by total desc.
+    merchants: list[MerchantSummary] = field(default_factory=list)
 
 
 @dataclass
@@ -52,7 +64,40 @@ class ReportData:
 
     categories: list[CategorySummary] = field(default_factory=list)
     income_transactions: list[Transaction] = field(default_factory=list)
+    income_merchants: list[MerchantSummary] = field(default_factory=list)
     monthly_breakdown: list[MonthSummary] = field(default_factory=list)
+
+
+def aggregate_by_merchant(
+    txs: list[Transaction],
+    amount_attr: str = "debit",
+) -> list[MerchantSummary]:
+    """Group transactions by place/source (rows at the same merchant rolled
+    into one line), sorted by total descending.
+
+    ``amount_attr`` selects which field to sum — "debit" for expenses, "credit"
+    for income (so recurring Bit transfers collapse into a single line too).
+    """
+    merchants_map: dict[str, list[Transaction]] = {}
+    for tx in txs:
+        key = canonicalize(tx.description) or tx.description.strip().lower()
+        merchants_map.setdefault(key, []).append(tx)
+
+    summary = []
+    for _key, group in merchants_map.items():
+        # Display name: the most common original description in the group.
+        name_counts: dict[str, int] = {}
+        for t in group:
+            name_counts[t.description] = name_counts.get(t.description, 0) + 1
+        display_name = max(name_counts, key=name_counts.get)
+        summary.append(MerchantSummary(
+            name=display_name,
+            total=sum(getattr(t, amount_attr) for t in group),
+            count=len(group),
+            transactions=sorted(group, key=lambda x: x.date, reverse=True),
+        ))
+    summary.sort(key=lambda x: x.total, reverse=True)
+    return summary
 
 
 def filter_transactions(transactions: list[Transaction], year: int = None, month: int = None) -> list[Transaction]:
@@ -78,9 +123,10 @@ def is_credit_card_settlement(tx: Transaction) -> bool:
 
     cc_keywords = [
         "חיוב כרטיס", "חיוב כרטיסי", "כרטיסי אשראי", "כרטיס אשראי", "חיובי כרטיס",
-        "לאומי קארד", "ישראכרט", "מקס", "כאל", "אמקס", "אמריקן אקספרס", "מסטרקארד",
+        "לאומי קארד", "ישראכרט", "מקס", "כאל", "אמקס", "אמריקן אקספרס",
+        "מסטרקארד", "מסטרקרד", "כ' אשראי",
         "leumi card", "isracard", "max", "cal", "visa", "ויזה", "mastercard", "amex",
-        "הוראת קבע מקס", "הוראת קבע ישראכרט", "חיובי קרדיט"
+        "הוראת קבע מקס", "הוראת קבע ישראכרט", "חיובי קרדיט",
     ]
     return any(kw in desc for kw in cc_keywords)
 
@@ -172,6 +218,8 @@ def build_report(
     real_net = total_income - total_expenses
 
     # ----- Pending: ALWAYS computed against full data, not filtered -----
+    # Direct/immediate cards (MC דירקט) are debited from the bank the moment
+    # you pay, so their purchases are never pending.
     settlement_billing_months = set()
     for tx in bank_txs_all:
         if is_credit_card_settlement(tx):
@@ -182,6 +230,8 @@ def build_report(
 
     pending_card_txs = []
     for tx in card_txs_all:
+        if tx.immediate:
+            continue  # direct card: already charged at purchase
         bm = billing_month(tx.date)
         tx_billing = (bm.year, bm.month)
         if last_settled is None or tx_billing > last_settled:
@@ -234,7 +284,8 @@ def build_report(
         categories_summary.append(CategorySummary(
             name=cat_name,
             total=sum(tx.debit for tx in txs),
-            transactions=sorted(txs, key=lambda x: x.date, reverse=True)
+            transactions=sorted(txs, key=lambda x: x.date, reverse=True),
+            merchants=aggregate_by_merchant(txs),
         ))
     categories_summary.sort(key=lambda x: x.total, reverse=True)
 
@@ -271,7 +322,8 @@ def build_report(
                 m_categories.append(CategorySummary(
                     name=c_name,
                     total=sum(tx.debit for tx in c_txs),
-                    transactions=sorted(c_txs, key=lambda x: x.date, reverse=True)
+                    transactions=sorted(c_txs, key=lambda x: x.date, reverse=True),
+                    merchants=aggregate_by_merchant(c_txs),
                 ))
             m_categories.sort(key=lambda x: x.total, reverse=True)
 
@@ -302,6 +354,10 @@ def build_report(
             [tx for tx in bank_txs if tx.credit > 0],
             key=lambda x: x.date,
             reverse=True
+        ),
+        income_merchants=aggregate_by_merchant(
+            [tx for tx in bank_txs if tx.credit > 0],
+            amount_attr="credit",
         ),
         monthly_breakdown=monthly_breakdown
     )
