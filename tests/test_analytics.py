@@ -371,3 +371,79 @@ class TestOpeningBalance:
         assert report.opening_balance == 50000
         assert report.closing_balance == 49900
         assert abs(report.balance_change - (-100)) < 0.01
+
+
+# ---------------------------------------------------------------
+# Merchant aggregation
+# ---------------------------------------------------------------
+class TestMerchantAggregation:
+    def _card(self, desc, amount, day, cat="🍎 Groceries"):
+        return Transaction(
+            date=datetime(2026, 5, day),
+            description=desc,
+            reference="",
+            debit=amount, credit=0, balance=0,
+            source="credit_card",
+            category=cat,
+        )
+
+    def _groceries(self, report):
+        return next(c for c in report.categories if c.name == "🍎 Groceries")
+
+    def test_groups_purchases_by_place_within_category(self):
+        cards = [
+            self._card('רשת כוורת בצה"ל -טלפ', 12.0, 1),
+            self._card('רשת כוורת בצה"ל -טלפ', 27.5, 2),
+            self._card("APPLE.COM/BILL", 22.77, 3),
+        ]
+        report = build_report([], cards, year=2026, month=5)
+        groceries = self._groceries(report)
+
+        kaveret = next(m for m in groceries.merchants if "כוורת" in m.name)
+        assert kaveret.count == 2
+        assert kaveret.total == pytest.approx(39.5)
+        # Two distinct merchants within the category.
+        assert len(groceries.merchants) == 2
+
+    def test_merchants_sorted_by_total_desc(self):
+        cards = [
+            self._card("SMALL SHOP", 10.0, 1),
+            self._card("BIG SHOP", 500.0, 2),
+        ]
+        report = build_report([], cards, year=2026, month=5)
+        merchants = self._groceries(report).merchants
+        assert merchants[0].name == "BIG SHOP"
+        assert merchants[0].total == pytest.approx(500.0)
+
+    def test_merchant_totals_sum_to_category_total(self):
+        cards = [
+            self._card("SHOP A", 10.0, 1),
+            self._card("SHOP A", 5.0, 2),
+            self._card("SHOP B", 20.0, 3),
+        ]
+        groceries = self._groceries(build_report([], cards, year=2026, month=5))
+        assert sum(m.total for m in groceries.merchants) == pytest.approx(groceries.total)
+
+    def _income(self, desc, amount, day):
+        return Transaction(
+            date=datetime(2026, 5, day),
+            description=desc,
+            reference="",
+            debit=0, credit=amount, balance=0,
+            source="bank",
+        )
+
+    def test_income_groups_bit_transfers(self):
+        bank = [
+            self._income("bit העברת כסף", 57.0, 1),
+            self._income("bit העברת כסף", 44.25, 2),
+            self._income("משכורת", 8000.0, 3),
+        ]
+        report = build_report(bank, [], year=2026, month=5)
+
+        # Bit transfers are normalized to a single clean "BIT" label.
+        bit = next(m for m in report.income_merchants if m.name == "BIT")
+        assert bit.count == 2
+        assert bit.total == pytest.approx(101.25)
+        # Income merchant totals reconcile with total income.
+        assert sum(m.total for m in report.income_merchants) == pytest.approx(report.total_income)
