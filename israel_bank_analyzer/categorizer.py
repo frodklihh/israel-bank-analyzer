@@ -31,7 +31,7 @@ CATEGORIES: dict[str, list[str]] = {
 
     "🏠 House & Billing": [
         # Rent & checks to landlord
-        "שכירות",
+        "שכירות", "דירה",
         # Municipal & building
         "ארנונה", "ועד בית", "אגודה הדדית", "ארלוזורוב אגודה",
         # Utilities
@@ -39,13 +39,7 @@ CATEGORIES: dict[str, list[str]] = {
         # Home internet & cable
         "בזק", "הוט", "013", "019",
         # Government housing
-        "עמידר", "חלמיש", "דיור ציבורי",
-    ],
-
-    "💸 Transactions": [
-        "העברה", "העברת",  # transfers (without דיגיטל - that's rent)
-        "ז.בנק", "ז. בנק",  # bank transfers
-        "הע. אינטרנטית", "העברה אינטרנטית",  # online transfers
+        "עמידר", "חלמיש", "דיור ציבורי", "אינטרנט ומיים"
     ],
 
     "🍎 Groceries": [
@@ -55,22 +49,25 @@ CATEGORIES: dict[str, list[str]] = {
         "ספיד","פרישוק", "סינמטק ראש פינה",
         "מקור הפיצוחים בעמ",   # ספיד בראשית - local grocery
         "דהן מרקט", "רוסמן", "סבא חביב",
-        "דיווין דליקטס ויין",
+        "דיווין דליקטס ויין", 'רשת כוורת בצה"ל',
+        # Stored normalized (dashes become spaces before matching), so a literal
+        # "מש - קר בע\"מ" still matches.
+        "מש קר בע",
     ],
 
     "🍽️ Restaurants & Cafes": [
         "וולט", "wolt", "10bis", "מסעדה", "קפה", "פיצה", "סושי",
         "המבורגר", "פלאפל", "מקדונלד", "ארומה", "איזי פאף -קריית ים",
-        "שווארמה", "גלידה", "מאפה", "מאפייה", 
+        "שווארמה", "שוורמה", "בורגר", "גלידה", "מאפה", "מאפייה",
         "מנדרין","מסעדת אמבר", "מסעדת טורקיז", "מסעדת בראון", "מסעדת ג'ויה",
         "גרג אודיטוריום", "גרג קניון", "גרג קרית אתא", "גרג קרית ביאליק",
         "י.ע.ל בני ציון", "י.ע.ל קרית אתא", "י.ע.ל קרית ביאליק","PAYPAL *CAFEKINNERE",
-        "מסעדת אמרטי", "קונדיטוריה ליבל"
+        "מסעדת אמרטי", "קונדיטוריה ליבל", "שינקין בורגר"
     ],
 
     "🚗 Transport": [
         # Fuel
-        "דלק", "פז", "סונול", "דור אלון", "יילו",
+        "דלק", "פז", "סונול", "דור אלון", "יילו", "yellow",
         # Parking & tolls
         "חניה", "מנהרות", "פנגו",
         # Car maintenance
@@ -80,7 +77,7 @@ CATEGORIES: dict[str, list[str]] = {
         # Car insurance
         "ביטוח רכב", "ביטוח מנועי", "ביטוח ישיר",
         "איילון רכב", "מגדל רכב", "הפניקס רכב", "כלל רכב", "הראל רכב",
-        "מנורה ביטוח חובה","צמיגי הצומת"
+        "מנורה ביטוח חובה", "צמיגי הצומת","מ.תחבורה ר.נהיגה"
     ],
       "🚌 Public Transport": [
         # Public transport
@@ -103,7 +100,10 @@ CATEGORIES: dict[str, list[str]] = {
         "ביטוח כללי מנורה",
         # Dental & optical
         "שיניים", "דנטל", "אופטיקה",
-        "TOP PHARM", "טופ פארם", 'קורקט יבוא ושיווק מתנות בע"מ'
+        "TOP PHARM", "טופ פארם", 'קורקט יבוא ושיווק מתנות בע"מ',
+        "IHERB",
+        # Doctors / clinics
+        'ד"ר גב', "דר גב", "דר דימיטרי", "חיימוביץ", "מרפאת", "פיזיותרפיה",
     ],
 
     "💳 Subscriptions & Monthly Bills": [
@@ -111,7 +111,12 @@ CATEGORIES: dict[str, list[str]] = {
         "netflix", "spotify", "apple tv", "disney", "youtube",
         # Phone carriers
         "סלקום", "פרטנר", "פלאפון", "גולן טלקום",
-        "מרכז לבריאות השיער","APPLE.COM BILL",
+        "מרכז לבריאות השיער", "APPLE.COM BILL", "apple.com",
+        # Cloud / AI / digital services
+        "anthropic", "claude", "google one", "openai", "chatgpt", "microsoft",
+        "icloud", "dropbox", "google storage",
+        # Debit card aggregated charges (normalized: dash → space)
+        "דירקט מצטבר", "דירקט", "HOT"
     ],
 
     "🛍️ Shopping & Clothing": [
@@ -120,17 +125,27 @@ CATEGORIES: dict[str, list[str]] = {
         "ikea", "ace", "we shose", "נעליים", "ביגוד",
         "הום סנטר",
         "ביג מקס", "מקס סטוק",
-        "Temu.com", "זול סטוק קרית מוצקין", "הלב הכחול", "סבא חביב - סניף קרית אתא",
+        "Temu.com", "זול סטוק קרית מוצקין", "הלב הכחול", "סבא חביב - סניף קרית אתא", "ksp",
+        "קיי.אס.פי",
+        # Online marketplaces
+        "איקאה", "wildberries", "aliexpress", "fruugo", "temu", "shein", "asos",
+        # Musical instruments store
+        "כלי זמר",
     ],
 
     "🏋️ Sport & Fitness": [
-        "gym", "מכון כושר", "הולמס פלייס", "בריכה", "יוגה", "פילאטיס",
+        "gym", "מכון כושר", "הולמס פלייס", "בריכה", "יוגה", "פילאטיס", "כושר קריית אתא",
+        "דקאתלון", "decathlon",
+        "ספורט", "מרכז הספורט", "ספייס קרית אתא", "ספייס קרית",
     ],
 
     "🎬 Entertainment": [
         "קולנוע", "תיאטרון", "כרטיסים","אתדגיס אור ד.ג. בע''מ",
-        "סינמה סיטי", "יס פלאנט","סינמטק", "בארד פרודקשנס-יציל", 
+        "סינמה סיטי", "יס פלאנט","סינמטק", "בארד פרודקשנס-יציל",
         "חניון קניון סינמול","איזי פאף",
+        # Gaming
+        "steam", "fortnite", "epic games", "playstation", "xbox", "nintendo",
+        "roblox", "google play",
     ],
     
 
@@ -139,9 +154,31 @@ CATEGORIES: dict[str, list[str]] = {
         "מלון", "טיסה","ישראייר","TUI CRUISES", "רשות הטבע והגנים",
     ],
 
+    "💎 Savings & Pension": [
+        "מיטב דש", "גמל ופ", "פנסיה", "קרן השתלמות", "תגמולים",
+    ],
+
     "💰 Income": [
         "משכורת", "שכר", "זיכוי", "החזר",
         'מט"ב', "מטב", "ביטוח לאומי זיכוי",
+        "ירין כח אדם", "משרד הבינוי", 'מופ"ת',
+        "זכוי מת. חסכון",
+    ],
+
+    "🎓 Education": [
+        # Courses & exam prep (e.g. psychometric course provider "או.קיי")
+        "פסיכומטרי", "קורס", "לימודים", "שכר לימוד",
+        "אוניברסיטה", "מכללה", "או.קיי", "אוקיי",
+    ],
+
+    # Generic money transfers — kept LAST so a meaningful word inside a transfer
+    # note ("...דירה", "...שוורמה") is categorized by that word first, and only a
+    # bare transfer with no other signal falls through to here.
+    "💸 Transactions": [
+        "העברה", "העברת", "העב'",
+        "bit העברת", "bit",
+        "ז.בנק", "ז. בנק",
+        "הע. אינטרנטית", "העברה אינטרנטית", "משיכה מבנקט",
     ],
 }
 
@@ -193,30 +230,73 @@ def _match_keywords(description: str) -> Optional[str]:
     return None
 
 
-RENT_AMOUNT = 4500.0
-RENT_TOLERANCE = 50.0  # ±50₪ counts as rent
+# Rent labels — language-based, amount-independent so it works for any user.
+# A "שכירות"-labelled payment is also caught via the House & Billing keywords;
+# these variants cover abbreviations landlords/tenants commonly write.
+RENT_KEYWORDS = ["שכירות", 'שכ"ד', "שכ''ד", "דמי שכירות", "rent"]
 
 
-def _is_rent_check(tx: Transaction) -> bool:
-    """A check or digital transfer of ~4500₪ is treated as rent."""
+HOUSE_CATEGORY = "🏠 House & Billing"
+TRANSACTIONS_CATEGORY = "💸 Transactions"
+
+
+def _is_rent(tx: Transaction) -> bool:
+    """Rent → House & Billing, regardless of amount.
+
+    Two universal signals (no hardcoded sum):
+    - a paper check (``שיק``): in Israel checks are written mostly to landlords;
+    - any payment whose text carries a rent label (``שכירות`` / ``שכ"ד`` ...).
+    """
     desc = tx.description.strip()
-    if desc not in ("שיק", "העברה דיגיטל"):
-        return False
-    return abs(tx.debit - RENT_AMOUNT) <= RENT_TOLERANCE
+    if desc == "שיק" or desc.startswith("שיק "):
+        return True
+    return any(kw in desc for kw in RENT_KEYWORDS)
+
+
+def _recurring_rent_amounts(transactions: list[Transaction]) -> set[int]:
+    """Learn each user's rent amount(s) from the data, no hardcoded sum.
+
+    An amount is treated as rent only when it shows up at least twice as solid
+    rent evidence (a check or a ``שכירות``-labelled debit). The repetition gate
+    keeps a one-off check or coincidental payment from hijacking unrelated
+    transfers. The learned amounts let us also catch the months where the same
+    rent was paid by a bare transfer (no check, no label).
+    """
+    counts: dict[int, int] = {}
+    for tx in transactions:
+        if tx.debit > 0 and _is_rent(tx):
+            key = round(tx.debit)
+            counts[key] = counts.get(key, 0) + 1
+    return {amt for amt, n in counts.items() if n >= 2}
+
 
 def categorize(transactions: list[Transaction]) -> list[Transaction]:
     """Assign a category to every transaction."""
+    rent_amounts = _recurring_rent_amounts(transactions)
+
     for tx in transactions:
-        # Special rule: rent goes to House & Billing
-        if _is_rent_check(tx):
-            tx.category = "🏠 House & Billing"
+        # Special rule: rent (checks + rent-labelled payments) → House & Billing
+        if _is_rent(tx):
+            tx.category = HOUSE_CATEGORY
             continue
 
-        # Special rule: other checks and transfers go to Transactions
-        if tx.description.strip() in ("שיק", "העברה דיגיטל"):
-            tx.category = "💸 Transactions"
-            continue  # <-- 
-        category = _match_keywords(tx.description)
-        tx.category = category if category else UNKNOWN_CATEGORY
+        # A bare digital transfer with no other info → generic Transactions
+        if tx.description.strip() == "העברה דיגיטל":
+            base = TRANSACTIONS_CATEGORY
+        else:
+            base = _match_keywords(tx.description) or UNKNOWN_CATEGORY
+
+        # Auto-detected rent: a generic transfer whose amount matches a
+        # recurring rent amount learned above is almost certainly that month's
+        # rent paid without a check/label. Only override generic transfers
+        # (Transactions), never a real categorized purchase.
+        if (
+            base == TRANSACTIONS_CATEGORY
+            and tx.debit > 0
+            and round(tx.debit) in rent_amounts
+        ):
+            tx.category = HOUSE_CATEGORY
+        else:
+            tx.category = base
 
     return transactions
