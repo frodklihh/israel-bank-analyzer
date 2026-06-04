@@ -28,7 +28,7 @@ def _build_summary(report: ReportData) -> str:
 
 
 def send_report(html_path: Path, report: ReportData, config: EmailConfig) -> None:
-    subject = f"Leumi Report — {report.period_label}"
+    subject = f"Israel Bank Analyzer Report — {report.period_label}"
     body = _build_summary(report)
     html_bytes = html_path.read_bytes()
 

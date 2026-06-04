@@ -216,7 +216,7 @@ If that doesn't work, try **WSL2 or Docker** (Puppeteer works more reliably ther
 ```bash
 # WSL2 / Linux
 wsl -d Ubuntu
-cd /mnt/d/MyProjects/leumi-analyzer
+cd /mnt/d/MyProjects/israel-bank-analyzer
 python scripts/fetch.py ...
 ```
 
