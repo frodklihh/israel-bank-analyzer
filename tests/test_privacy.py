@@ -73,7 +73,7 @@ class TestCleanDescription:
     def test_strips_bare_long_reference(self, names):
         names("")
         # An opaque account code (letter prefix + long digit run) is removed.
-        assert "U24190453" not in clean_description("העברה U24190453 daniil")
+        assert "U24190453" not in clean_description("העברה U24190453 לחבר")
 
     def test_keeps_short_numbers(self, names):
         names("")

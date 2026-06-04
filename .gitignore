@@ -36,11 +36,10 @@ output/
 reports/20*/
 report.html
 bank_statement.xls
-cards_elena.xlsx
-cards_leonid.xlsx
+cards_*.xlsx
 
 # Real bank/card statements (contain PII) — never commit.
-# Recursive globs cover per-user subfolders too (e.g. reports/exports_michael/cards/*.xlsx).
+# Recursive globs cover per-user subfolders too (e.g. reports/exports_<name>/cards/*.xlsx).
 reports/*.xlsx
 reports/*.xls
 reports/**/*.xlsx

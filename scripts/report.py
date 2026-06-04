@@ -17,7 +17,7 @@ Usage:
     python scripts/report.py --cards exports/isracard.xlsx --year 2026 --month 5
     python scripts/report.py --bank exports/hapoalim.xlsx --cards exports/isracard.xlsx --email
     python scripts/report.py --cards-dir exports/        # load every file in a folder
-    python scripts/report.py --dir exports/daniel/       # one mixed folder, auto bank/card
+    python scripts/report.py --dir exports/me/           # one mixed folder, auto bank/card
 
 Where to download files:
     Hapoalim:  https://www.bankhapoalim.co.il → עו"ש → ייצוא לאקסל
